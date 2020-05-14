@@ -11,6 +11,9 @@ comb over a databse of stocks with a few modes avaliable for the latter for cust
 Future Features:
 
 Buy/Sell capabilities
+
 WebHost CommandCenter: control your algorithm from the web
+
 Statistic tracking
+
 More to come!
