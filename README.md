@@ -12,7 +12,7 @@ Future Features:
 
 Buy/Sell capabilities
 
-WebHost CommandCenter: control your algorithm from the web
+WebHost CommandCenter: Control your algorithm from the web
 
 Statistic tracking
 
