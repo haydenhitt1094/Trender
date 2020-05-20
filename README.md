@@ -1,8 +1,8 @@
 # Trender
 
 
-Trender is a perpetually active stock trading tool that usues both Elliot Wave and MACD trendline algorithms to 
-comb over a databse of stocks with a few modes avaliable for the latter for custom investments.
+Trender is a perpetually active stock trading tool that usues  MACD trendline algorithms to 
+comb over a databse of stocks with a few modes avaliable for custom investments.
 
 
 
