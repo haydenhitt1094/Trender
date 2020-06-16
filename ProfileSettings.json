@@ -1,0 +1,9 @@
+{
+    "MasterArm": true,
+   "MaxInvestment$": 20,
+   "MaxInvestmentShares":10,
+   "FractionalEnabled": false,
+   "SellEnabled": true,
+   "BuyEnabled": true,
+   "Profile": null
+}

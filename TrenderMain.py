@@ -10,10 +10,13 @@ import time
 import os 
 from multiprocessing import Process,ProcessError,Array
 from MemSwap import MemSwap
+from MACD import MACD,WhereCross
+import json
+from Settings import JSONSettings
 
 
 CurrentDirectory = os.path.dirname(os.path.abspath(__file__))
-os.chdir(CurrentDirectory)
+os.chdir(CurrentDirectory)      
 
 def getDistance(initialday,initialvalue,finalday,finalvalue):
     import math
@@ -36,69 +39,59 @@ def poolBuild(database,PoolResult):
             break
            
 
-#----Elliot-Wave-Daemon---------------
-def findElliot(actives):
-    global ElliotConfidence 
-    ElliotConfidence = 0 
+def TrendlineTrack(actives):
     for stock in actives:
         try:
             today = datetime.date.today()
-            startWatch = today - datetime.timedelta(days = 240)
+            startWatch = today - datetime.timedelta(days = 10)
             tickerFetch = charts.Ticker(str(stock))
             stockData = tickerFetch.history(period = '1d', start = startWatch, end = str(today))
-            #Initial plotting
+            
+            #"Verbose" plotting
             CurrentDay = []
             CloseValue = []
+            
             for i in range(len(stockData)):
                 CloseValue.append(stockData.iloc[i][3])
                 CurrentDay.append(i)
-            DataByDay = dict(zip(CurrentDay,CloseValue))
-            PointsOfInterest = []
-            DaysOfInterest = []
-            for day in CloseValue:
-                if DataByDay[CurrentDay] <= max(DataByDay) and DatabyDay[CurrentDay] > float(.9)*max(DataByDay):
-                   PointsOfInterest.append(DataByDay[CurrentDay])
-                   DaysOfInterest.append[CurrentDay]
-                   plt.annotate("POI" ,xy = (CurrentDay,DataByDay[CurrentDay]), arrowprops = {'facecolor':'red'})
-                   time.sleep(5)
-                   plt.close() 
-            else:
-                pass
-            #BeginCurveTraceSequence----------------------------
-            BaseTracePointDay = int(max(CurrentDay))
-            BaseTracePointValue = int(DataByDay[CurrentDay])
+            PairedData = dict(zip(CurrentDay,CloseValue))
             
-            for DayIterator in range(int(BaseTracePointDay,240)):
-                if DataByDay[DayIterator] >= DataByDay[int(DayIterator + 1)]:
-                    CarryOn = False
-                    pass
-                else:
-                    LegOneLength = getDistance(BaseTracePointDay,BaseTracePointValue,DayIterator,DataByDay[DayIterator])
-                    CarryOn = True
-                    DayIteratorLast = DayIterator
-                    break
-            if CarryOn == True:
-                LegTwoBaseValue = max(list(DataByDay[DayIteratorLast],DataByDay[DayIteratorLast + 1],DataByDay[DayIteratorLast + 2],DataByDay[DayIterator + 3]))
-                LegTwoBaseDay = 
+            CurrentStock = MACD(stockData)
+            SignalLineValues = CurrentStock.getSignalLineValues()
+            MACDValues = CurrentStock.getMACDValues()
+
+            SignalSet = WhereCross(byday = list(range(0,9)), macd_vals = MACDValues, signal_vals = SignalLineValues)
+            MarkedEvents = SignalSet.do()
+
+
+
         except IndexError:
             print("IndexError: Fatal>>> Closing...") 
             break
-    
 
+
+def getParameters(SettingsFile): 
+    with open(str(SettingsFile),'r') as SettingsProfile:
+            Preferences = json.load(SettingsProfile)
+    return Preferences
+    
 
 
 def Main():
     CurrentTime = datetime.datetime.now()
     CurrentHour = CurrentTime.hour
     CurrentMin = CurrentTime.minute
+
     DataBaseSizeOf = MemSwap('MasterPool.db')
+    MasterPool = str("MasterPool.db")
+
     while CurrentHour == 0 and CurrentMin <= 0 and CurrentMin >= 15:
         try:
             ProcessorNodesActive = []
             ProcessorNodePossible = os.cpu_count()
             PoolResult = Array('i',DataBaseSizeOf.GetPoolSize())
-            for k in range(ProcessorNodePossible):
-                poolNode = Process(target = poolBuild, args = (MasterPool,PoolResult))
+            for ProcessSetIterator_I in range(ProcessorNodePossible):
+                poolNode = Process(target = poolBuild, args = (MasterPool,PoolResult,))
                 ProcessorNodesActive.append(poolNode)
             for eachProcess in ProcessorNodesActive:
                 eachProcess.start()
@@ -107,18 +100,38 @@ def Main():
             for eachProcess in ProcessorNodesActive:
                 eachProcess.close()
         except ProcessError:
-            print("Fatal process error>>> Killing...")
+            print("Fatal processing error>>> Killing...")
             break
     
     ActiveStocks = PoolResult[:]
 
     while CurrentHour == 6 and CurrentMin != 59:
         try:
+            TrendlineTrack(ActiveStocks)
+        except IndexError:
+            break
+            print("Fatal error: Ending all processes")
+            
+#Settings definition and mutual use
+Preferences = getParameters("ProfileSettings.json")
+CurrentProfile = JSONSettings(list(Preferences))
+
+
+#Database Memory Share
+DataBaseSizeOf = MemSwap('MasterPool.db')
+MasterPool = str("MasterPool.db")
+
+if __name__ == "__main__":
+    if CurrentProfile.MasterArm == bool(True):
+        Main()
+    else:
+        try:
             ProcessorNodesActive = []
             ProcessorNodePossible = os.cpu_count()
-            for j in range(ProcessorNodePossible):
-                findElliotNode = Process(target=findElliot, args= (ActiveStocks,))
-                ProcessorNodesActive.append(findElliotNode)
+            PoolResult = Array('i',DataBaseSizeOf.GetPoolSize())
+            for ProcessSetIterator_I in range(ProcessorNodePossible):
+                poolNode = Process(target = poolBuild, args = (MasterPool,PoolResult,))
+                ProcessorNodesActive.append(poolNode)
             for eachProcess in ProcessorNodesActive:
                 eachProcess.start()
             for eachProcess in ProcessorNodesActive:
@@ -126,11 +139,4 @@ def Main():
             for eachProcess in ProcessorNodesActive:
                 eachProcess.close()
         except ProcessError:
-            print("Fatal process error>>> Killing...")
-            break
-
-
-
-
-if __name__ == "__main__":
-    Main()
+            print("Fatal processing error>>> Killing...")
