@@ -9,6 +9,10 @@ class JSONSettings:
         self.SellEnabled = bool(SettingsConstructor[4])
         self.BuyEnabled = bool(SettingsConstructor[5])
         self.ProfileType = SettingsConstructor[6]
+        self.Verbose = bool(SettingsConstructor[7])
+        self.MaximumThreadsAllowed = int(SettingsConstructor[8])
+        self.DefaultDatabase = str(SettingsConstructor[9])
+        self.ProfileName = str(SettingsConstructor[10])
     def setProfile(self):
         if self.ProfileType == None:
             self.ProfileType == None

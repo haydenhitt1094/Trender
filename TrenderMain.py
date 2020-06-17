@@ -4,42 +4,48 @@ import datetime
 import numpy as np 
 import pandas as pd 
 from matplotlib import pyplot as plt
-import scipy.interpolate as spline
 import math
 import time
+import threading
 import os 
-from multiprocessing import Process,ProcessError,Array
 from MemSwap import MemSwap
 from MACD import MACD,WhereCross
 import json
 from Settings import JSONSettings
+import stockstats
+from ThreadHandler import Queue
+import hashlib
+import sys
+
+global stack
+
+#Initialize the main stack
+stack = Queue()
 
 
+#Set home
 CurrentDirectory = os.path.dirname(os.path.abspath(__file__))
 os.chdir(CurrentDirectory)      
 
-def getDistance(initialday,initialvalue,finalday,finalvalue):
-    import math
-    distance = math.sqrt(((finalvalue-initialvalue)**2)+((finalday-initialday)**2))
-    return distance
-
-def poolBuild(database,PoolResult):
+#Move stocks from database to active list
+def poolBuild(database,Verbose):
     pool = []
     init = dbase.connect(str(database))
-    cursor = init.cursor()
-    for row in cursor.execute("SELECT * FROM ActivePool"):
+    Connection = init.Connection()
+    for row in Connection.execute("SELECT * FROM ActivePool"):
         try:
             if row[1] == int(1):
+                if Verbose == True:
+                    print('Adding '+ str(row[0]))
+                else:
+                    pass
                 pool.append(str(row[0]))
-                for PoolIndexer,PoolElement in enumerate(pool):
-                    PoolResult[PoolIndexer] = str(PoolElement) 
-            else:
-                pass
+                stack.place(pool)
         except IndexError:
             break
            
 
-def TrendlineTrack(actives):
+def TrendlineTrack(actives,Verbose):
     for stock in actives:
         try:
             today = datetime.date.today()
@@ -54,7 +60,15 @@ def TrendlineTrack(actives):
             for i in range(len(stockData)):
                 CloseValue.append(stockData.iloc[i][3])
                 CurrentDay.append(i)
+            
             PairedData = dict(zip(CurrentDay,CloseValue))
+
+            if Verbose == True:
+                print("Data for " + str(stock)+":\n")
+                print(PairedData)
+            else:
+                pass
+
             
             CurrentStock = MACD(stockData)
             SignalLineValues = CurrentStock.getSignalLineValues()
@@ -62,6 +76,13 @@ def TrendlineTrack(actives):
 
             SignalSet = WhereCross(byday = list(range(0,9)), macd_vals = MACDValues, signal_vals = SignalLineValues)
             MarkedEvents = SignalSet.do()
+
+            BuyIndications = MarkedEvents[0]
+            SellIndications = MarkedEvents[1]
+            StrongBuyIndication = MarkedEvents[2]
+
+
+
 
 
 
@@ -75,68 +96,85 @@ def getParameters(SettingsFile):
             Preferences = json.load(SettingsProfile)
     return Preferences
     
+        
 
 
-def Main():
-    CurrentTime = datetime.datetime.now()
-    CurrentHour = CurrentTime.hour
-    CurrentMin = CurrentTime.minute
-
-    DataBaseSizeOf = MemSwap('MasterPool.db')
-    MasterPool = str("MasterPool.db")
-
-    while CurrentHour == 0 and CurrentMin <= 0 and CurrentMin >= 15:
-        try:
-            ProcessorNodesActive = []
-            ProcessorNodePossible = os.cpu_count()
-            PoolResult = Array('i',DataBaseSizeOf.GetPoolSize())
-            for ProcessSetIterator_I in range(ProcessorNodePossible):
-                poolNode = Process(target = poolBuild, args = (MasterPool,PoolResult,))
-                ProcessorNodesActive.append(poolNode)
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.start()
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.join()
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.close()
-        except ProcessError:
-            print("Fatal processing error>>> Killing...")
-            break
-    
-    ActiveStocks = PoolResult[:]
-
-    while CurrentHour == 6 and CurrentMin != 59:
-        try:
-            TrendlineTrack(ActiveStocks)
-        except IndexError:
-            break
-            print("Fatal error: Ending all processes")
-            
-#Settings definition and mutual use
-Preferences = getParameters("ProfileSettings.json")
-CurrentProfile = JSONSettings(list(Preferences))
-
-
-#Database Memory Share
-DataBaseSizeOf = MemSwap('MasterPool.db')
-MasterPool = str("MasterPool.db")
 
 if __name__ == "__main__":
-    if CurrentProfile.MasterArm == bool(True):
-        Main()
+
+    #Load settings
+    Preferences = getParameters("ProfileSettings.json")
+    CurrentProfile = JSONSettings(list(Preferences))
+
+
+    print("Welcome to Trender" + str(CurrentProfile.ProfileName) + "please sign in\n")
+    UsernamePreAuth = str(input("Username:"))
+    print("\n")
+    PasswordPreAuth = str(input("Password:"))
+    print("\n")
+    
+    UsernameCipher = hashlib.sha256(UsernamePreAuth.encode())
+    PasswordCipher = hashlib.sha256(PasswordPreAuth.encode())
+    #--------------------------------
+    #----DB-Data---------------------
+    seqfmtu = (str(UsernamePreAuth,))
+    seqfmtp = (str(PasswordCipher,))
+    #--------Grab-password-----------
+    try:
+        OpenConnection = dbase.connect('users.db')
+        Connection = OpenConnection.Connection()
+        Connection.execute("SELECT * FROM UserData WHERE username=?",(seqfmtu,))
+        DBResults = Connection.fetchall()
+        FoundData = DBResults[0]
+        PasswordOnFile = FoundData[1]
+    except:
+        print("Database Error!")
+        sys.exit()
+    #--------------------------------
+    if PasswordCipher.hexdigest() == PasswordOnFile:
+        Connection.close()
     else:
-        try:
-            ProcessorNodesActive = []
-            ProcessorNodePossible = os.cpu_count()
-            PoolResult = Array('i',DataBaseSizeOf.GetPoolSize())
-            for ProcessSetIterator_I in range(ProcessorNodePossible):
-                poolNode = Process(target = poolBuild, args = (MasterPool,PoolResult,))
-                ProcessorNodesActive.append(poolNode)
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.start()
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.join()
-            for eachProcess in ProcessorNodesActive:
-                eachProcess.close()
-        except ProcessError:
-            print("Fatal processing error>>> Killing...")
+        print("Authentication Error!")
+        sys.exit()
+
+
+    
+    
+    if CurrentProfile.MasterArm == bool(True):
+        CurrentTime = datetime.datetime.now()
+        CurrentHour = CurrentTime.hour
+        CurrentMin = CurrentTime.minute
+
+        while CurrentHour == 0 and CurrentMin >= 0 and CurrentMin <= 15:
+            try:
+                Threads = threading.Thread(target=poolBuild , args=(CurrentProfile.DefaultDatabase,CurrentProfile.Verbose))
+                Threads.start()
+                
+                #Paging for data to finish processing
+
+                while True:
+                    Page = stack.isEmpty()
+                    if Page:
+                        pass
+                    else:
+                        PoolReturn = list(stack.cut())
+                        break
+
+            except IndexError:
+                pass
+
+
+        
+        ActiveStocks = PoolReturn
+
+        while CurrentHour == 6 and CurrentMin != 59:
+            try:
+                Threads = threading.Thread(target=TrendlineTrack, args=(PoolReturn,CurrentProfile.Verbose,))
+                Threads.start()
+
+
+            except:
+                break
+    else:
+        sys.exit("Master arm set to false in ProfileSettings.json")
+    

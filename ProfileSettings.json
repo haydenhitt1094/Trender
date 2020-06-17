@@ -1,9 +1,13 @@
 {
     "MasterArm": true,
-   "MaxInvestment$": 20,
+   "MaxInvestment": 20,
    "MaxInvestmentShares":10,
    "FractionalEnabled": false,
    "SellEnabled": true,
    "BuyEnabled": true,
-   "Profile": null
+   "Profile": null,
+   "Verbose": true,
+   "MaximumThreadsAllowed":6,
+   "DefaultDatabase": "MasterPool.db",
+   "ProfileName":"Hayden"
 }
