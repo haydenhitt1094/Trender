@@ -1,7 +1,8 @@
 class Queue:
     def __init__(self):
+        import multiprocessing
         self.Stack = []
-
+        self.MaxCores = int(multiprocessing.cpu_count())
     def __repr__(self):
         return "{}".format(self.Stack)
 
@@ -26,3 +27,4 @@ class Queue:
             return None
         else:
             return self.Stack.pop()
+    

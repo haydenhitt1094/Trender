@@ -7,7 +7,7 @@
    "BuyEnabled": true,
    "Profile": null,
    "Verbose": true,
-   "MaximumThreadsAllowed":6,
+   "MaximumThreadsAllowed":2,
    "DefaultDatabase": "MasterPool.db",
    "ProfileName":"Hayden"
 }
