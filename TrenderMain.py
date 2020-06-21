@@ -18,16 +18,38 @@ from ThreadHandler import Queue
 import hashlib
 import sys
 import multiprocessing
+import Statistician
+import Security
+import smtplib
+import AllStocks
+
+
 
 global stack
 
 #Initialize the main stack
+print("Initializing main thread stack")
+time.sleep(.4)
 stack = Queue()
+time.sleep(.4)
+print("Thread stack prepared")
+
+#Securing server
+print("Beginning to secure server")
+time.sleep(.4)
+mallCop = Security.Secure()
+mallCop.patrol()
+time.sleep(.4)
+print("Server secured")
+
+
 
 
 #Set home
 CurrentDirectory = os.path.dirname(os.path.abspath(__file__))
-os.chdir(CurrentDirectory)      
+os.chdir(CurrentDirectory)  
+time.sleep(1)
+print("Home directory set")
 
 #Move stocks from database to active list
 def poolBuild(database,Verbose):
@@ -69,7 +91,6 @@ def TrendlineTrack(stock,Verbose):
         else:
             pass
 
-        
         CurrentStock = MACD(stockData)
         SignalLineValues = CurrentStock.getSignalLineValues()
         MACDValues = CurrentStock.getMACDValues()
@@ -81,7 +102,7 @@ def TrendlineTrack(stock,Verbose):
         SellIndications = MarkedEvents[1]
         StrongBuyIndication = MarkedEvents[2]
 
-
+        return list([stock,BuyIndications,SellIndications,StrongBuyIndication])
     except IndexError:
         sys.exit("IndexError: Fatal>>> Closing...") 
         
@@ -91,16 +112,18 @@ def getParameters(SettingsFile):
         Preferences = json.load(SettingsProfile)
     return Preferences
 
-        
+def Shop(algo_returns):
+    Stock = algo_returns[0]
+
 
 if __name__ == "__main__":
 
     #Load settings
     Preferences = getParameters("ProfileSettings.json")
     CurrentProfile = JSONSettings(dict(Preferences))
+    CurrentProfile.verifySettings()
 
-
-    print("Welcome to Trender" + str(CurrentProfile.ProfileName) + "please sign in\n")
+    print("Welcome to Trender " + str(CurrentProfile.ProfileName) + " please sign in\n")
     UsernamePreAuth = str(input("Username:"))
     print("\n")
     PasswordPreAuth = str(input("Password:"))
@@ -143,6 +166,10 @@ if __name__ == "__main__":
         while CurrentHour == 0 and CurrentMin >= 0 and CurrentMin <= 15:
                 try:
                     PoolReturns = list(poolBuild(CurrentProfile.DefaultDatabase,CurrentProfile.Verbose))
+
+                    #Updating all time list
+                    AllTimeList = AllStocks.AllStocks(PoolReturns,"AllStocks.txt")
+                    AllTimeList.updateAll()
                 except IndexError:
                     pass
 
