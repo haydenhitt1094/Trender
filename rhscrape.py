@@ -7,4 +7,4 @@ baseurl = "https://www.robinhood.com"
 liveresponse = requests.get(url = baseurl,headers = headers)
 
 if not liveresponse.status_code == 200:
-    print("fuck")
+    print("darn")
